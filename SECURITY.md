@@ -1,8 +1,5 @@
-[//]: # (SPDX-License-Identifier: CC-BY-4.0)
-
 # Security Policy
 
 ## Reporting security bugs
 
-If you think you have found a security bug in mlkem-native, please report the vulnerability through
-Github's [private vulnerability reporting](https://github.com/pq-code-package/mldsa-native/security).
+If you think you have found a security bug in the mldsa-native in TF-PSA-Crypto, please [report it as a vulnerability in TF-PSA-Crypto](https://github.com/Mbed-TLS/TF-PSA-Crypto/blob/development/SECURITY.md).

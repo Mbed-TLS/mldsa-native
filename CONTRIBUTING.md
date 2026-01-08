@@ -1,39 +1,8 @@
-[//]: # (SPDX-License-Identifier: CC-BY-4.0)
-
 # Contributing to mldsa-native
 
-We welcome contributors who can help us build mldsa-native. If you are interested, please contact us, or volunteer for
-any of the open issues. Here are some things to get you started.
+We aim to minimize the differences between the [upstream mldsa-native](https://github.com/pq-code-package/mldsa-native) and our fork. If you wish to contribute to mldsa-native, please [contribute upstream](https://github.com/pq-code-package/mldsa-native/blob/main/CONTRIBUTING.md). If you think that the TF-PSA-Crypto integration requires a patch, please discuss it in an [issue on our fork](https://github.com/Mbed-TLS/mldsa-native/issues) first.
 
-### nix setup
+Contributions to the Mbed-TLS mldsa-native fork have the same license as upstream. See the [LICENSE](LICENSE) file.
 
-We specify the development environment for mldsa-native using `nix`. If you want to help develop mldsa-native, please
-use `nix`. We recommend using the latest Nix version provided by the [nix installer
-script](https://nixos.org/download/), but we currently support all Nix versions >= 2.18.
-
-All the development and build dependencies are specified in [flake.nix](flake.nix). To execute a bash shell, run
-```bash
-nix develop --experimental-features 'nix-command flakes'
-```
-
-To confirm that everything worked, try `lint` or `tests cbmc`.
-
-### Coding style
-
-We use auto-formatting using `clang-format` as specified in [.clang-format](.clang-format). Use the `./scripts/format`
-script (in your `PATH` when using`nix`) to re-format the files accordingly.
-
-### Namespacing
-
-We namespace all entities of global scope, including statics and structures. This is to facilitate monolithic builds of
-mldsa-native in a single compilation unit, potentially including multiple copies for different security levels.
-
-### Commits and Pull Requests
-
-We require all commits to be signed off using the `--signoff` flag:
-
-```bash
-git commit --signoff -m "Your commit message"
-```
-
-This adds a "Signed-off-by" line to your commit message, indicating that you certify the commit under the terms of the Developer Certificate of Origin.
+When contributing code to us, the committer and all authors are required to make the submission under the terms of the [Developer Certificate of Origin](dco.txt), confirming that the code submitted can (legally) become part of the project, and is submitted under the [LICENSE](LICENSE).
+This is done by including the standard Git `Signed-off-by:` line in every commit message. If more than one person contributed to the commit, they should also add their own `Signed-off-by:` line.
