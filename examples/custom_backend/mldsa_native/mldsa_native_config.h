@@ -360,13 +360,13 @@
  *              zeroizes intermediate stack buffers before returning from
  *              function calls.
  *
- *              Set this option and define `mld_zeroize_native` if you want to
+ *              Set this option and define `mld_zeroize` if you want to
  *              use a custom method to zeroize intermediate stack buffers.
  *              The default implementation uses SecureZeroMemory on Windows
  *              and a memset + compiler barrier otherwise. If neither of those
  *              is available on the target platform, compilation will fail,
  *              and you will need to use MLD_CONFIG_CUSTOM_ZEROIZE to provide
- *              a custom implementation of `mld_zeroize_native()`.
+ *              a custom implementation of `mld_zeroize()`.
  *
  *              WARNING:
  *              The explicit stack zeroization conducted by mldsa-native
@@ -379,7 +379,7 @@
  *
  *              If you need bullet-proof zeroization of the stack, you need to
  *              consider additional measures instead of what this feature
- *              provides. In this case, you can set mld_zeroize_native to a
+ *              provides. In this case, you can set mld_zeroize to a
  *              no-op.
  *
  *****************************************************************************/
@@ -387,7 +387,7 @@
    #if !defined(__ASSEMBLER__)
    #include <stdint.h>
    #include "src/src.h"
-   static MLD_INLINE void mld_zeroize_native(void *ptr, size_t len)
+   static MLD_INLINE void mld_zeroize(void *ptr, size_t len)
    {
        ... your implementation ...
    }
@@ -402,7 +402,7 @@
  *              consumer.
  *
  *              If this option is not set, mldsa-native expects a function
- *              void randombytes(uint8_t *out, size_t outlen).
+ *              int randombytes(uint8_t *out, size_t outlen).
  *
  *              Set this option and define `mld_randombytes` if you want to
  *              use a custom method to sample randombytes with a different name
@@ -413,9 +413,10 @@
    #if !defined(__ASSEMBLER__)
    #include <stdint.h>
    #include "src/src.h"
-   static MLD_INLINE void mld_randombytes(uint8_t *ptr, size_t len)
+   static MLD_INLINE int mld_randombytes(uint8_t *ptr, size_t len)
    {
        ... your implementation ...
+       return 0;
    }
    #endif
 */
@@ -666,13 +667,36 @@
 /* #define MLD_CONFIG_SERIAL_FIPS202_ONLY */
 
 /******************************************************************************
+ * Name:        MLD_CONFIG_CONTEXT_PARAMETER
+ *
+ * Description: Set this to add a context parameter that is provided to public
+ *              API functions and is then available in custom callbacks.
+ *
+ *              The type of the context parameter is configured via
+ *              MLD_CONFIG_CONTEXT_PARAMETER_TYPE.
+ *
+ *****************************************************************************/
+/* #define MLD_CONFIG_CONTEXT_PARAMETER */
+
+/******************************************************************************
+ * Name:        MLD_CONFIG_CONTEXT_PARAMETER_TYPE
+ *
+ * Description: Set this to define the type for the context parameter used by
+ *              MLD_CONFIG_CONTEXT_PARAMETER.
+ *
+ *              This is only relevant if MLD_CONFIG_CONTEXT_PARAMETER is set.
+ *
+ *****************************************************************************/
+/* #define MLD_CONFIG_CONTEXT_PARAMETER_TYPE void* */
+
+/******************************************************************************
  * Name:        MLD_CONFIG_REDUCE_RAM [EXPERIMENTAL]
  *
  * Description: Set this to reduce RAM usage.
  *              This trades memory for performance.
  *
- *              For detailed expected memory savings, see the
- *              mldsa-native README.
+ *              For expected memory usage, see the MLD_TOTAL_ALLOC_* constants
+ *              defined in mldsa_native.h.
  *
  *              This option is useful for embedded systems with tight RAM
  *              constraints but relaxed performance requirements.
