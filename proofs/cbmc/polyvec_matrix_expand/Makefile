@@ -19,8 +19,10 @@ UNWINDSET +=
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE).c
 PROJECT_SOURCES += $(SRCDIR)/mldsa/src/polyvec.c
 
-CHECK_FUNCTION_CONTRACTS=$(MLD_NAMESPACE)polyvec_matrix_expand
-USE_FUNCTION_CONTRACTS=$(MLD_NAMESPACE)poly_uniform_4x $(MLD_NAMESPACE)poly_uniform mld_polymat_permute_bitrev_to_custom
+CHECK_FUNCTION_CONTRACTS=mld_polyvec_matrix_expand
+USE_FUNCTION_CONTRACTS=mld_poly_uniform_4x
+USE_FUNCTION_CONTRACTS+=mld_poly_uniform
+USE_FUNCTION_CONTRACTS+=mld_polymat_permute_bitrev_to_custom
 APPLY_LOOP_CONTRACTS=on
 USE_DYNAMIC_FRAMES=1
 
@@ -38,7 +40,7 @@ FUNCTION_NAME = polyvec_matrix_expand
 # EXPENSIVE = true
 
 # This function is large enough to need...
-CBMC_OBJECT_BITS = 11
+CBMC_OBJECT_BITS = 12
 
 # If you require access to a file-local ("static") function or object to conduct
 # your proof, set the following (and do not include the original source file

@@ -39,6 +39,7 @@ source code and documentation.
   - [integration/liboqs/config_x86_64.h](integration/liboqs/config_x86_64.h)
   - [mldsa/mldsa_native_config.h](mldsa/mldsa_native_config.h)
   - [mldsa/src/sign.c](mldsa/src/sign.c)
+  - [proofs/cbmc/mldsa_native_config_cbmc.h](proofs/cbmc/mldsa_native_config_cbmc.h)
   - [test/configs/break_pct_config.h](test/configs/break_pct_config.h)
   - [test/configs/custom_heap_alloc_config.h](test/configs/custom_heap_alloc_config.h)
   - [test/configs/custom_memcpy_config.h](test/configs/custom_memcpy_config.h)
@@ -94,6 +95,7 @@ source code and documentation.
   - [mldsa/src/rounding.h](mldsa/src/rounding.h)
   - [mldsa/src/sign.c](mldsa/src/sign.c)
   - [mldsa/src/sign.h](mldsa/src/sign.h)
+  - [proofs/cbmc/mldsa_native_config_cbmc.h](proofs/cbmc/mldsa_native_config_cbmc.h)
   - [test/configs/break_pct_config.h](test/configs/break_pct_config.h)
   - [test/configs/custom_memcpy_config.h](test/configs/custom_memcpy_config.h)
   - [test/configs/custom_memset_config.h](test/configs/custom_memset_config.h)
@@ -246,6 +248,7 @@ source code and documentation.
   - [mldsa/src/native/x86_64/src/rej_uniform_avx2.c](mldsa/src/native/x86_64/src/rej_uniform_avx2.c)
   - [mldsa/src/native/x86_64/src/rej_uniform_eta2_avx2.c](mldsa/src/native/x86_64/src/rej_uniform_eta2_avx2.c)
   - [mldsa/src/native/x86_64/src/rej_uniform_eta4_avx2.c](mldsa/src/native/x86_64/src/rej_uniform_eta4_avx2.c)
+  - [proofs/hol_light/x86_64/mldsa/mldsa_intt.S](proofs/hol_light/x86_64/mldsa/mldsa_intt.S)
   - [proofs/hol_light/x86_64/mldsa/mldsa_ntt.S](proofs/hol_light/x86_64/mldsa/mldsa_ntt.S)
 
 ### `Round3_Spec`

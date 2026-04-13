@@ -731,7 +731,6 @@ def gen_c_zetas():
 def gen_c_zeta_file():
     def gen():
         yield from gen_header()
-        yield "#include <stdint.h>"
         yield ""
         yield "/*"
         yield " * Table of zeta values used in the reference NTT and inverse NTT."
@@ -931,7 +930,6 @@ def gen_aarch64_zeta_file():
         yield "#if defined(MLD_ARITH_BACKEND_AARCH64) && \\"
         yield "    !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED)"
         yield ""
-        yield "#include <stdint.h>"
         yield '#include "arith_native_aarch64.h"'
         yield ""
         yield "/*"
@@ -993,7 +991,6 @@ def gen_aarch64_rej_uniform_eta_table():
         yield "#if defined(MLD_ARITH_BACKEND_AARCH64) && \\"
         yield "    !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED)"
         yield ""
-        yield "#include <stdint.h>"
         yield '#include "arith_native_aarch64.h"'
         yield ""
         yield "/*"
@@ -1045,7 +1042,6 @@ def gen_aarch64_rej_uniform_table():
         yield "#if defined(MLD_ARITH_BACKEND_AARCH64) && \\"
         yield "    !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED)"
         yield ""
-        yield "#include <stdint.h>"
         yield '#include "arith_native_aarch64.h"'
         yield ""
         yield "/*"
@@ -1067,6 +1063,74 @@ def gen_aarch64_rej_uniform_table():
     update_file("dev/aarch64_opt/src/rej_uniform_table.c", "\n".join(gen()))
 
     update_file("dev/aarch64_clean/src/rej_uniform_table.c", "\n".join(gen()))
+
+
+def gen_aarch64_polyz_unpack_indices(bit_width):
+    """Generate Neon TBL index bytes for polyz_unpack.
+
+    Each loop iteration loads bit_width * 16 / 8 packed bytes into
+    registers v0, v1, v2 and unpacks 16 coefficients. Coefficients
+    are unpacked in 4 groups of 4, one group per TBL/TBL2.
+
+    Each coefficient is extracted from 3 consecutive bytes.
+    Groups 0,1 index from v0 (and v1); groups 2,3 index from v1 (and v2),
+    so their byte offsets are shifted by -16.
+
+    To avoid overreading the input buffer, v0/v1 and v2 are loaded
+    separately: v0/v1 via ld1 {v0,v1} at buf, v2 via ld1 {v2} at
+    buf + stride - 16 (stride = bit_width * 2). Since v2 starts at
+    a different offset than a contiguous 3-register load would give,
+    TBL indices referencing v2 (>= 16 within groups 2,3) are shifted
+    by 48 - 2 * bit_width.
+    """
+    v2_shift = 48 - 2 * bit_width
+    for group in range(4):
+        base_coeff = group * 4
+        reg_offset = 0 if group < 2 else 16
+        for coeff in range(4):
+            i = base_coeff + coeff
+            byte_start = (i * bit_width) // 8 - reg_offset
+            for j in range(3):
+                b = byte_start + j
+                if group >= 2 and b >= 16:
+                    b += v2_shift
+                yield b
+            yield 255
+
+
+def gen_aarch64_polyz_unpack_table():
+    def format_row(vals):
+        return ", ".join(f"{v:>3}" for v in vals) + ","
+
+    def gen():
+        yield from gen_header()
+        yield '#include "../../../common.h"'
+        yield ""
+        yield "#if defined(MLD_ARITH_BACKEND_AARCH64) && \\"
+        yield "    !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED)"
+        yield ""
+        yield '#include "arith_native_aarch64.h"'
+        yield ""
+        yield "/* Table of indices used for tbl instructions in polyz_unpack_{17,19}."
+        yield " * See autogen for details. */"
+        yield ""
+        for gamma1_bits in [17, 19]:
+            bit_width = gamma1_bits + 1
+            indices = list(gen_aarch64_polyz_unpack_indices(bit_width))
+            yield f"MLD_ALIGN const uint8_t mld_polyz_unpack_{gamma1_bits}_indices[] = {{"
+            for row_start in range(0, len(indices), 16):
+                yield "    " + format_row(indices[row_start : row_start + 16])
+            yield "};"
+            yield ""
+        yield "#else /* MLD_ARITH_BACKEND_AARCH64 && !MLD_CONFIG_MULTILEVEL_NO_SHARED */"
+        yield ""
+        yield "MLD_EMPTY_CU(aarch64_polyz_unpack_table)"
+        yield ""
+        yield "#endif /* !(MLD_ARITH_BACKEND_AARCH64 && !MLD_CONFIG_MULTILEVEL_NO_SHARED) */"
+        yield ""
+
+    update_file("dev/aarch64_opt/src/polyz_unpack_table.c", "\n".join(gen()))
+    update_file("dev/aarch64_clean/src/polyz_unpack_table.c", "\n".join(gen()))
 
 
 def gen_avx2_rej_uniform_table_rows():
@@ -1095,7 +1159,6 @@ def gen_avx2_rej_uniform_table():
         yield "#if defined(MLD_ARITH_BACKEND_X86_64_DEFAULT) && \\"
         yield "    !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED)"
         yield ""
-        yield "#include <stdint.h>"
         yield '#include "arith_native_x86_64.h"'
         yield ""
         yield "/*"
@@ -1235,6 +1298,26 @@ def gen_avx2_zetas_qdata():
         "zetas": zetas_idx,
     }
     return constants, offsets
+
+
+def gen_aarch64_hol_light_zeta_file():
+    def gen():
+        yield from gen_hol_light_header()
+        yield "(*"
+        yield " * Table of zeta values used in the AArch64 NTTs"
+        yield " * See autogen for details."
+        yield " *)"
+        yield ""
+        yield "let ntt_zetas_layer012345 = define `ntt_zetas_layer012345:int list = ["
+        yield from print_hol_light_array(gen_aarch64_fwd_ntt_zetas_layer123456())
+        yield "]`;;"
+        yield ""
+        yield "let ntt_zetas_layer67 = define `ntt_zetas_layer67:int list = ["
+        yield from print_hol_light_array(gen_aarch64_fwd_ntt_zetas_layer78())
+        yield "]`;;"
+        yield ""
+
+    update_file("proofs/hol_light/aarch64/proofs/mldsa_zetas.ml", "\n".join(gen()))
 
 
 def gen_avx2_hol_light_zeta_file():
@@ -1461,6 +1544,10 @@ def riscv64(c):
     return "/riscv64/" in c
 
 
+def armv81m(c):
+    return "/armv81m/" in c
+
+
 def native_fips202(c):
     return native(c) and fips202(c)
 
@@ -1477,11 +1564,16 @@ def native_fips202_x86_64(c):
     return native_fips202(c) and x86_64(c)
 
 
+def native_fips202_armv81m(c):
+    return native_fips202(c) and armv81m(c)
+
+
 def native_fips202_core(c):
     return (
         native_fips202(c)
         and not native_fips202_x86_64(c)
         and not native_fips202_aarch64(c)
+        and not native_fips202_armv81m(c)
     )
 
 
@@ -1590,6 +1682,11 @@ def gen_macro_undefs(extra_notes=None):
         filt=native_fips202_x86_64, desc="native code (FIPS202, x86_64)"
     )
     yield "#endif"
+    yield "#if defined(MLD_SYS_ARMV81M_MVE)"
+    yield from gen_monolithic_undef_all_core(
+        filt=native_fips202_armv81m, desc="native code (FIPS202, Armv8.1-M)"
+    )
+    yield "#endif"
     yield "#endif"
     yield "#if defined(MLD_CONFIG_USE_NATIVE_BACKEND_ARITH)"
     yield from gen_monolithic_undef_all_core(filt=native_arith_core, desc="")
@@ -1692,6 +1789,10 @@ def gen_monolithic_source_file():
         for c in filter(native_fips202_x86_64, c_sources):
             yield f'#include "{c}"'
         yield "#endif"
+        yield "#if defined(MLD_SYS_ARMV81M_MVE)"
+        for c in filter(native_fips202_armv81m, c_sources):
+            yield f'#include "{c}"'
+        yield "#endif"
         yield "#endif"
         yield ""
         yield from gen_macro_undefs()
@@ -1746,7 +1847,7 @@ def gen_monolithic_asm_file():
         yield " *"
         yield " * Example:"
         yield " * ```bash"
-        yield " * unifdef -UMLD_CONFIG_USE_NATIVE_BACKEND_ARITH mldsa_native.S"
+        yield " * unifdef -UMLD_CONFIG_USE_NATIVE_BACKEND_ARITH mldsa_native_asm.S"
         yield " * ```"
         yield " */"
         yield ""
@@ -1772,6 +1873,10 @@ def gen_monolithic_asm_file():
         for c in filter(native_fips202_x86_64, asm_sources):
             yield f'#include "{c}"'
         yield "#endif"
+        yield "#if defined(MLD_SYS_ARMV81M_MVE)"
+        for c in filter(native_fips202_armv81m, asm_sources):
+            yield f'#include "{c}"'
+        yield "#endif"
         yield "#endif"
         yield ""
         # We generate #undef's for all headers, even though most are not
@@ -1791,7 +1896,7 @@ def gen_monolithic_asm_file():
         ]
         yield from gen_macro_undefs(extra_notes=extra)
 
-    update_file("mldsa/mldsa_native.S", "\n".join(gen()), force_format=True)
+    update_file("mldsa/mldsa_native_asm.S", "\n".join(gen()), force_format=True)
 
 
 def get_config_options():
@@ -2095,6 +2200,8 @@ def update_via_simpasm(
         source_arch = "aarch64"
     elif "x86_64" in infile_full:
         source_arch = "x86_64"
+    elif "armv81m" in infile_full:
+        source_arch = "armv81m"
     else:
         raise Exception(f"Could not detect architecture of source file {infile_full}.")
     # Check native architecture
@@ -2103,7 +2210,15 @@ def update_via_simpasm(
     else:
         native_arch = "x86_64"
 
-    if native_arch != source_arch:
+    # Armv8.1-M is always cross-compiled
+    if source_arch == "armv81m":
+        cross_prefix = "arm-none-eabi-"
+        cross_gcc = cross_prefix + "gcc"
+        if shutil.which(cross_gcc) is None:
+            if force_cross is False:
+                return
+            raise Exception(f"Could not find cross toolchain {cross_prefix}")
+    elif native_arch != source_arch:
         cross_prefix = f"{source_arch}-unknown-linux-gnu-"
         cross_gcc = cross_prefix + "gcc"
         # Check if cross-compiler is present
@@ -2117,18 +2232,25 @@ def update_via_simpasm(
     with tempfile.NamedTemporaryFile(suffix=".S") as tmp:
         try:
             # Determine architecture from filename
-            arch = "aarch64" if "aarch64" in infile_full else "x86_64"
+            if "aarch64" in infile_full:
+                arch = "aarch64"
+            elif "armv81m" in infile_full:
+                arch = "armv81m"
+            else:
+                arch = "x86_64"
 
             cmd = [
                 "./scripts/simpasm",
                 "--objdump=llvm-objdump",
-                "--cfify",
                 "--arch=" + arch,
                 "-i",
                 infile_full,
                 "-o",
                 tmp.name,
             ]
+            # TODO: Support CFI for Armv8.1-M
+            if arch != "armv81m":
+                cmd += ["--cfify"]
             if cross_prefix is not None:
                 # Stick with llvm-objdump for disassembly
                 cmd += ["--cc", cross_prefix + "gcc"]
@@ -2170,6 +2292,24 @@ def gen_hol_light_asm_file(job):
 
 
 def gen_hol_light_asm():
+    aarch64_flags = "-march=armv8.4-a+sha3"
+    joblist_aarch64 = [
+        (
+            "poly_caddq_asm.S",
+            "mldsa_poly_caddq.S",
+            "dev/aarch64_opt/src",
+            f"-Imldsa/src/native/aarch64/src {aarch64_flags}",
+            "aarch64",
+        ),
+        (
+            "poly_chknorm_asm.S",
+            "mldsa_poly_chknorm.S",
+            "dev/aarch64_opt/src",
+            f"-Imldsa/src/native/aarch64/src {aarch64_flags}",
+            "aarch64",
+        ),
+    ]
+
     x86_64_flags = "-mavx2 -mbmi2 -msse4 -fcf-protection=full"
     joblist_x86_64 = [
         (
@@ -2179,9 +2319,17 @@ def gen_hol_light_asm():
             f"-Imldsa/src/native/x86_64/src -Imldsa/src/common.h {x86_64_flags}",
             "x86_64",
         ),
+        (
+            "intt.S",
+            "mldsa_intt.S",
+            "dev/x86_64/src",
+            f"-Imldsa/src/native/x86_64/src -Imldsa/src/common.h {x86_64_flags}",
+            "x86_64",
+        ),
     ]
 
-    run_parallel(joblist_x86_64, gen_hol_light_asm_file)
+    joblist = joblist_aarch64 + joblist_x86_64
+    run_parallel(joblist, gen_hol_light_asm_file)
 
 
 def update_via_copy(infile_full, outfile_full, transform=None):
@@ -2198,12 +2346,13 @@ def update_via_remove(filename):
     update_file(filename, None)
 
 
+# Only synchronize sources, but not README.md, Makefile and so on
+SYNCHRONIZED_EXTENSIONS = (".c", ".h", ".i", ".inc", ".S")
+
+
 def synchronize_file(f, in_dir, out_dir, delete=False, no_simplify=False, **kwargs):
 
-    # Only synchronize sources, but not README.md, Makefile and so on
-    extensions = (".c", ".h", ".i", ".inc", ".S")
-
-    if not f.endswith(extensions):
+    if not f.endswith(SYNCHRONIZED_EXTENSIONS):
         return None
 
     basename = os.path.basename(f)
@@ -2253,6 +2402,8 @@ def synchronize_backend(in_dir, out_dir, delete=False, no_simplify=False, **kwar
     # Check for files in the target directory that have not been copied
     for f in get_files(os.path.join(out_dir, "*")):
         if os.path.basename(f) in copied:
+            continue
+        if not f.endswith(SYNCHRONIZED_EXTENSIONS):
             continue
         # Otherwise, remove it
         update_via_remove(f)
@@ -2328,6 +2479,22 @@ def synchronize_backends(
         # This leads to duplicate endbr64 instructions causing a failure when
         # comparing the object code before and after simplification.
         cflags="-Imldsa/src/native/x86_64/src/ -mavx2 -mbmi2 -msse4 -fcf-protection=none",
+    )
+    synchronize_backend(
+        "dev/fips202/armv81m/src",
+        "mldsa/src/fips202/native/armv81m/src",
+        delete=delete,
+        force_cross=force_cross,
+        no_simplify=no_simplify,
+        cflags="-Idev/fips202/armv81m/src -Imldsa/src/fips202/native/armv81m/src -march=armv8.1-m.main+mve -mthumb",
+    )
+    synchronize_backend(
+        "dev/fips202/armv81m",
+        "mldsa/src/fips202/native/armv81m",
+        delete=delete,
+        force_cross=force_cross,
+        no_simplify=no_simplify,
+        cflags="-Idev/fips202/armv81m -Imldsa/src/fips202/native/armv81m -march=armv8.1-m.main+mve -mthumb",
     )
 
 
@@ -2595,11 +2762,19 @@ def gen_markdown_citations_for(filename, bibliography):
     except ValueError:
         pass
 
+    # Find explicit footnote definitions outside the bibliography block
+    # These are lines matching `[^ID]: ...` and should be excluded from autogeneration
+    explicit_footnotes = set()
+    for l in content:
+        m = re.match(r"^\[\^(\w+)\]:", l)
+        if m:
+            explicit_footnotes.add(m.group(1))
+
     # Add footnotes for all citations found
-    if len(citations) > 0:
-        content.append(footnote_footer_start)
-    cite_ids = list(citations.keys())
+    cite_ids = [c for c in citations.keys() if c not in explicit_footnotes]
     cite_ids.sort()
+    if len(cite_ids) > 0:
+        content.append(footnote_footer_start)
     for cite_id in cite_ids:
         uses = citations[cite_id]
         entry = bibliography.get(cite_id, None)
@@ -2614,7 +2789,7 @@ def gen_markdown_citations_for(filename, bibliography):
         # Remember this usage of the bibliography entry
         entry.register_usages(uses)
 
-    if len(citations) > 0:
+    if len(cite_ids) > 0:
         content.append("")
 
     update_file(filename, "\n".join(content))
@@ -2965,8 +3140,7 @@ def update_hol_light_bytecode_for_arch(arch, force_cross=False):
 
 def update_hol_light_bytecode(force_cross=False):
     """Update HOL Light proof files with bytecode from make dump_bytecode."""
-    # NOTE: The following line is commented out until there are hol_light aarch64 proofs.
-    # update_hol_light_bytecode_for_arch("aarch64", force_cross=force_cross)
+    update_hol_light_bytecode_for_arch("aarch64", force_cross=force_cross)
     update_hol_light_bytecode_for_arch("x86_64", force_cross=force_cross)
 
 
@@ -3164,8 +3338,10 @@ def _main():
     def gen_zeta_tables():
         gen_c_zeta_file()
         gen_aarch64_zeta_file()
+        gen_aarch64_hol_light_zeta_file()
         gen_aarch64_rej_uniform_table()
         gen_aarch64_rej_uniform_eta_table()
+        gen_aarch64_polyz_unpack_table()
         gen_avx2_hol_light_zeta_file()
         gen_avx2_zeta_file()
         gen_avx2_rej_uniform_table()
@@ -3174,7 +3350,11 @@ def _main():
         gen_monolithic_source_file()
         gen_monolithic_asm_file()
 
-    hol_light_asm_supported = platform.machine().lower() in ["x86_64"]
+    hol_light_asm_supported = platform.machine().lower() in [
+        "arm64",
+        "aarch64",
+        "x86_64",
+    ]
 
     # Build step list: (description, function, enabled)
     # If enabled is False, step is skipped

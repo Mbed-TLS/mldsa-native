@@ -5,7 +5,6 @@
  */
 #ifndef MLD_FIPS202_KECCAKF1600_H
 #define MLD_FIPS202_KECCAKF1600_H
-#include <stdint.h>
 #include "../cbmc.h"
 #include "../common.h"
 #include "fips202.h"
@@ -21,6 +20,7 @@
  */
 
 #define mld_keccakf1600_extract_bytes MLD_NAMESPACE(keccakf1600_extract_bytes)
+MLD_INTERNAL_API
 void mld_keccakf1600_extract_bytes(uint64_t *state, unsigned char *data,
                                    unsigned offset, unsigned length)
 __contract__(
@@ -32,6 +32,7 @@ __contract__(
 );
 
 #define mld_keccakf1600_xor_bytes MLD_NAMESPACE(keccakf1600_xor_bytes)
+MLD_INTERNAL_API
 void mld_keccakf1600_xor_bytes(uint64_t *state, const unsigned char *data,
                                unsigned offset, unsigned length)
 __contract__(
@@ -44,6 +45,7 @@ __contract__(
 
 #define mld_keccakf1600x4_extract_bytes \
   MLD_NAMESPACE(keccakf1600x4_extract_bytes)
+MLD_INTERNAL_API
 void mld_keccakf1600x4_extract_bytes(uint64_t *state, unsigned char *data0,
                                      unsigned char *data1, unsigned char *data2,
                                      unsigned char *data3, unsigned offset,
@@ -63,6 +65,7 @@ __contract__(
 );
 
 #define mld_keccakf1600x4_xor_bytes MLD_NAMESPACE(keccakf1600x4_xor_bytes)
+MLD_INTERNAL_API
 void mld_keccakf1600x4_xor_bytes(uint64_t *state, const unsigned char *data0,
                                  const unsigned char *data1,
                                  const unsigned char *data2,
@@ -84,6 +87,7 @@ __contract__(
 );
 
 #define mld_keccakf1600x4_permute MLD_NAMESPACE(keccakf1600x4_permute)
+MLD_INTERNAL_API
 void mld_keccakf1600x4_permute(uint64_t *state)
 __contract__(
     requires(memory_no_alias(state, sizeof(uint64_t) * MLD_KECCAK_LANES * MLD_KECCAK_WAY))
@@ -91,6 +95,7 @@ __contract__(
 );
 
 #define mld_keccakf1600_permute MLD_NAMESPACE(keccakf1600_permute)
+MLD_INTERNAL_API
 void mld_keccakf1600_permute(uint64_t *state)
 __contract__(
     requires(memory_no_alias(state, sizeof(uint64_t) * MLD_KECCAK_LANES))
