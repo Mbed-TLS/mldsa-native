@@ -5,7 +5,8 @@
  */
 
  #include "../../../common.h"
-#if defined(MLD_ARITH_BACKEND_AARCH64) && !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED)
+#if defined(MLD_ARITH_BACKEND_AARCH64) && !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED) && \
+           (defined(MLD_CONFIG_MULTILEVEL_WITH_SHARED) || MLD_CONFIG_PARAMETER_SET == 44)
 /* simpasm: header-end */
 
 .macro trim_map_17 a
@@ -64,9 +65,13 @@ MLD_ASM_FN_SYMBOL(polyz_unpack_17_asm)
         mov count, #(64/4)
 
 polyz_unpack_17_loop:
-        ldr q1, [buf, #16]
-        ldr s2, [buf, #32]
-        ldr q0, [buf], #36
+        // Split the load to avoid overreading the buffer: a
+        // 3-register ld1 would load 48 bytes, but only 36 are
+        // consumed per iteration. The TBL indices for v2 are
+        // adjusted to account for v2's load offset.
+        ld1	{v0.16b, v1.16b}, [buf]
+        add	buf, buf, #0x14
+        ld1	{v2.16b}, [buf], #0x10
 
         tbl v4.16b, {v0.16b}, idx0.16b
         tbl v5.16b, {v0.16b - v1.16b}, idx1.16b
@@ -101,4 +106,6 @@ polyz_unpack_17_loop:
         .unreq mask
         .unreq gamma1
 /* simpasm: footer-start */
-#endif /* MLD_ARITH_BACKEND_AARCH64 && !MLD_CONFIG_MULTILEVEL_NO_SHARED */
+#endif /* MLD_ARITH_BACKEND_AARCH64 && !MLD_CONFIG_MULTILEVEL_NO_SHARED && \
+          (MLD_CONFIG_MULTILEVEL_WITH_SHARED || MLD_CONFIG_PARAMETER_SET == 44) \
+        */

@@ -32,7 +32,6 @@
  * by Ronny Van Keer, and the public domain @[tweetfips] implementation. */
 
 #include <stddef.h>
-#include <stdint.h>
 
 #include "../common.h"
 #include "../ct.h"
@@ -74,6 +73,7 @@ static unsigned int keccak_absorb(uint64_t s[MLD_KECCAK_LANES],
                                   const uint8_t *in, size_t inlen)
 __contract__(
   requires(inlen <= MLD_MAX_BUFFER_SIZE)
+  requires(r > 0)
   requires(r < sizeof(uint64_t) * MLD_KECCAK_LANES)
   requires(pos <= r)
   requires(memory_no_alias(s, sizeof(uint64_t) * MLD_KECCAK_LANES))
@@ -87,7 +87,8 @@ __contract__(
       memory_slice(s, sizeof(uint64_t) *  MLD_KECCAK_LANES))
     invariant(inlen <= loop_entry(inlen))
     invariant(pos <= r)
-    invariant(in == loop_entry(in) + (loop_entry(inlen) - inlen)))
+    invariant(in == loop_entry(in) + (loop_entry(inlen) - inlen))
+    decreases(inlen + pos))
   {
     mld_keccakf1600_xor_bytes(s, in, pos, r - pos);
     inlen -= r - pos;
@@ -174,6 +175,7 @@ __contract__(
     invariant(bytes_to_go <= outlen)
     invariant(out_offset == outlen - bytes_to_go)
     invariant(pos <= r)
+    decreases(bytes_to_go)
   )
   {
     if (pos == r)
@@ -192,64 +194,75 @@ __contract__(
   return pos;
 }
 
+MLD_INTERNAL_API
 void mld_shake128_init(mld_shake128ctx *state)
 {
   keccak_init(state->s);
   state->pos = 0;
 }
 
+MLD_INTERNAL_API
 void mld_shake128_absorb(mld_shake128ctx *state, const uint8_t *in,
                          size_t inlen)
 {
   state->pos = keccak_absorb(state->s, state->pos, SHAKE128_RATE, in, inlen);
 }
 
+MLD_INTERNAL_API
 void mld_shake128_finalize(mld_shake128ctx *state)
 {
   keccak_finalize(state->s, state->pos, SHAKE128_RATE, 0x1F);
   state->pos = SHAKE128_RATE;
 }
 
+MLD_INTERNAL_API
 void mld_shake128_squeeze(uint8_t *out, size_t outlen, mld_shake128ctx *state)
 {
   state->pos = keccak_squeeze(out, outlen, state->s, state->pos, SHAKE128_RATE);
 }
 
+MLD_INTERNAL_API
 void mld_shake128_release(mld_shake128ctx *state)
 {
   /* @[FIPS204, Section 3.6.3] Destruction of intermediate values. */
   mld_zeroize(state, sizeof(mld_shake128ctx));
 }
 
+MLD_INTERNAL_API
 void mld_shake256_init(mld_shake256ctx *state)
 {
   keccak_init(state->s);
   state->pos = 0;
 }
 
+MLD_INTERNAL_API
 void mld_shake256_absorb(mld_shake256ctx *state, const uint8_t *in,
                          size_t inlen)
 {
   state->pos = keccak_absorb(state->s, state->pos, SHAKE256_RATE, in, inlen);
 }
 
+MLD_INTERNAL_API
 void mld_shake256_finalize(mld_shake256ctx *state)
 {
   keccak_finalize(state->s, state->pos, SHAKE256_RATE, 0x1F);
   state->pos = SHAKE256_RATE;
 }
 
+MLD_INTERNAL_API
 void mld_shake256_squeeze(uint8_t *out, size_t outlen, mld_shake256ctx *state)
 {
   state->pos = keccak_squeeze(out, outlen, state->s, state->pos, SHAKE256_RATE);
 }
 
+MLD_INTERNAL_API
 void mld_shake256_release(mld_shake256ctx *state)
 {
   /* @[FIPS204, Section 3.6.3] Destruction of intermediate values. */
   mld_zeroize(state, sizeof(mld_shake256ctx));
 }
 
+MLD_INTERNAL_API
 void mld_shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
 {
   mld_shake256ctx state;

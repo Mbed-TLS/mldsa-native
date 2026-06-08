@@ -36,22 +36,22 @@ jobs:
            name: 'ubuntu-latest (aarch64)'
            arch: x86_64
            mode: cross-x86_64
-           nix_shell: ci-cross-x86_64
+           nix_shell: cross-x86_64
          - runner: ubuntu-24.04-arm
            name: 'ubuntu-latest (aarch64)'
            arch: riscv64
            mode: cross-riscv64
-           nix_shell: ci-cross-riscv64
+           nix_shell: cross-riscv64
          - runner: ubuntu-24.04-arm
            name: 'ubuntu-latest (aarch64)'
            arch: riscv32
            mode: cross-riscv32
-           nix_shell: ci-cross-riscv32
+           nix_shell: cross-riscv32
          - runner: ubuntu-24.04-arm
            name: 'ubuntu-latest (ppc64le)'
            arch: ppc64le
            mode: cross-ppc64le
-           nix_shell: ci-cross-ppc64le
+           nix_shell: cross-ppc64le
          - runner: ubuntu-latest
            name: 'ubuntu-latest (x86_64)'
            arch: x86_64
@@ -61,12 +61,12 @@ jobs:
            name: 'ubuntu-latest (x86_64)'
            arch: aarch64
            mode: cross-aarch64
-           nix_shell: ci-cross-aarch64
+           nix_shell: cross-aarch64
          - runner: ubuntu-latest
            name: 'ubuntu-latest (x86_64)'
            arch: aarch64_be
            mode: cross-aarch64_be
-           nix_shell: ci-cross-aarch64_be
+           nix_shell: cross-aarch64_be
         exclude:
           - {external: true,
              target: {
@@ -82,7 +82,7 @@ jobs:
                name: 'ubuntu-latest (aarch64)',
                arch: x86_64,
                mode: cross-x86_64,
-               nix_shell: ci-cross-x86_64
+               nix_shell: cross-x86_64
              }}
           - {external: true,
              target: {
@@ -90,7 +90,7 @@ jobs:
                name: 'ubuntu-latest (aarch64)',
                arch: riscv64,
                mode: cross-riscv64,
-               nix_shell: ci-cross-riscv64
+               nix_shell: cross-riscv64
              }}
           - {external: true,
              target: {
@@ -98,7 +98,7 @@ jobs:
                name: 'ubuntu-latest (aarch64)',
                arch: riscv32,
                mode: cross-riscv32,
-               nix_shell: ci-cross-riscv32
+               nix_shell: cross-riscv32
              }}
           - {external: true,
              target: {
@@ -106,7 +106,7 @@ jobs:
                name: 'ubuntu-latest (ppc64le)',
                arch: ppc64le,
                mode: cross-ppc64le,
-               nix_shell: ci-cross-ppc64le
+               nix_shell: cross-ppc64le
              }}
           - {external: true,
              target: {
@@ -122,7 +122,7 @@ jobs:
                name: 'ubuntu-latest (x86_64)',
                arch: aarch64,
                mode: cross-aarch64,
-               nix_shell: ci-cross-aarch64
+               nix_shell: cross-aarch64
              }}
           - {external: true,
              target: {
@@ -130,12 +130,12 @@ jobs:
                name: 'ubuntu-latest (x86_64)',
                arch: aarch64_be,
                mode: cross-aarch64_be,
-               nix_shell: ci-cross-aarch64_be
+               nix_shell: cross-aarch64_be
              }}
     name: Functional tests (${{ matrix.target.arch }}${{ matrix.target.mode != 'native' && ', cross' || ''}})
     runs-on: ${{ matrix.target.runner }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: build + test (no-opt)
         uses: ./.github/actions/multi-functest
         with:
@@ -182,7 +182,7 @@ jobs:
         backend: [x1_scalar, x1_v84a, x2_v84a, x4_v8a_scalar, x4_v8a_v84a_scalar]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: build + test
         uses: ./.github/actions/multi-functest
         with:
@@ -211,77 +211,78 @@ jobs:
            name: 'macos'
         compiler:
          - name: gcc-4.8
-           shell: ci_gcc48
+           shell: gcc48
            darwin: False
            c17: False
            c23: False
            opt: all
            examples: true
          - name: gcc-4.9
-           shell: ci_gcc49
+           shell: gcc49
            darwin: False
            c17: False
            c23: False
            opt: all
            examples: true
          - name: gcc-7
-           shell: ci_gcc7
+           shell: gcc7
            darwin: False
            c17: False
            c23: False
            opt: all
            examples: true
          - name: gcc-11
-           shell: ci_gcc11
+           shell: gcc11
            darwin: True
            c17: True
            c23: False
            opt: all
            examples: true
          - name: gcc-13
-           shell: ci_gcc13
-           darwin: True
+           shell: gcc13
+           # TODO: gcc13 broken on macOS in nixpkgs 25.11
+           darwin: False
            c17: True
            c23: False
            opt: all
            examples: true
          - name: gcc-14
-           shell: ci_gcc14
+           shell: gcc14
            darwin: True
            c17: True
            c23: True
            opt: all
            examples: true
          - name: gcc-15
-           shell: ci_gcc15
+           shell: gcc15
            darwin: True
            c17: True
            c23: True
            opt: all
            examples: true
          - name: clang-18
-           shell: ci_clang18
+           shell: clang18
            darwin: True
            c17: True
            c23: True
            opt: all
            examples: true
          - name: clang-19
-           shell: ci_clang19
+           shell: clang19
            darwin: True
            c17: True
            c23: True
            opt: all
            examples: true
          - name: clang-20
-           shell: ci_clang20
+           shell: clang20
            darwin: True
            c17: True
            c23: True
            opt: all
            examples: true
          - name: clang-21
-           shell: ci_clang21
+           shell: clang21
            darwin: True
            c17: True
            c23: True
@@ -294,28 +295,28 @@ jobs:
          # We omit all examples since there is currently no way to run
          # only those examples not involving native code.
          - name: zig-0.12
-           shell: ci_zig0_12
+           shell: zig0_12
            darwin: True
            c17: True
            c23: False
            examples: False
            opt: no_opt
          - name: zig-0.13
-           shell: ci_zig0_13
+           shell: zig0_13
            darwin: True
            c17: True
            c23: False
            examples: False
            opt: no_opt
          - name: zig-0.14
-           shell: ci_zig0_14
+           shell: zig0_14
            darwin: True
            c17: True
            c23: True
            examples: False
            opt: no_opt
          - name: zig-0.15
-           shell: ci_zig0_15
+           shell: zig0_15
            darwin: True
            c17: True
            c23: True
@@ -323,7 +324,7 @@ jobs:
            opt: no_opt
     runs-on: ${{ matrix.target.runner }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: native build+functest (default)
         if: ${{ matrix.compiler.darwin || matrix.target.runner != 'macos-latest' }}
         uses: ./.github/actions/multi-functest
@@ -425,13 +426,13 @@ jobs:
           - external: true
     runs-on: ${{ matrix.target.runner }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Stack analysis
         uses: ./.github/actions/multi-functest
         with:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
           compile_mode: native
-          nix-shell: ci_valgrind-varlat_gcc15
+          nix-shell: valgrind-varlat_gcc15
           nix-cache: false
           opt: all
           cflags: "${{ matrix.cflags }}"
@@ -466,7 +467,7 @@ jobs:
              }}
     runs-on: ${{ matrix.target.runner }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: "Config Variations"
         uses: ./.github/actions/config-variations
         with:
@@ -478,15 +479,15 @@ jobs:
       matrix:
         compiler:
          - name: gcc-14
-           shell: ci_gcc14
+           shell: gcc14
          - name: gcc-15
-           shell: ci_gcc15
+           shell: gcc15
          - name: clang-19
-           shell: ci_clang19
+           shell: clang19
     # On AArch64 -fcf-protection is not supported anyway
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Test control-flow protections
         uses: ./.github/actions/multi-functest
         with:
@@ -518,7 +519,7 @@ jobs:
     name: Check API consistency
     runs-on: ${{ matrix.target.runner }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: make quickcheck
         run: |
           OPT=0 CFLAGS="-Imldsa -DMLD_CHECK_APIS -Wno-redundant-decls" make quickcheck
@@ -571,7 +572,6 @@ jobs:
       name: ${{ matrix.target.name }}
       ec2_instance_type: ${{ matrix.target.ec2_instance_type }}
       ec2_ami: ${{ matrix.target.ec2_ami }}
-      ec2_ami_id: ${{ matrix.target.ec2_ami_id }}
       compile_mode: ${{ matrix.target.compile_mode }}
       opt: ${{ matrix.target.opt }}
       config_variations: ${{ matrix.target.config_variations || '' }}
@@ -588,9 +588,15 @@ jobs:
       matrix:
         container:
           - id: debian:bullseye
+            nix_shell: ''
           - id: debian:bookworm
-          - id: nixos/nix:latest
-            nix_shell: 'nix-shell -p python3 gcc gnumake perl'
+            nix_shell: ''
+          # TODO: Re-enable once containerd fixes /etc/group symlink handling.
+          # Docker Engine 29.1.5 (API 1.52, containerd v2.2.0) rejects NixOS
+          # /etc/group symlink into /nix/store/ as "path escapes from parent".
+          # https://github.com/containerd/containerd/issues/12683
+          # - id: nixos/nix:latest
+          #   nix_shell: 'nix-shell -p python3 gcc gnumake perl'
     name: Compatibility tests (${{ matrix.container.id }})
     runs-on: ubuntu-latest
     container:
@@ -611,10 +617,10 @@ jobs:
              apt install git -y
           fi
 
-          git config --global --add safe.directory $GITHUB_WORKSPACE
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git init
-          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
-          git fetch origin --depth 1 $GITHUB_SHA
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          git fetch origin --depth 1 "$GITHUB_SHA"
           git checkout FETCH_HEAD
       - uses: ./.github/actions/setup-os
         with:
@@ -727,7 +733,7 @@ jobs:
       matrix:
         target:
           - system: macos-latest
-            nix_shell: 'ci-cross-x86_64'
+            nix_shell: 'cross-autogen'
             nix_cache: 'true'
             extra_args: '--force-cross'
           # TODO: This does not yet work (#1304) <- MLKEM ISSUE, Port when fixed
@@ -735,17 +741,17 @@ jobs:
           #   nix_cache: 'false'
           #   nix_shell: 'ci'
           - system: ubuntu-latest
-            nix_shell: 'ci-cross-aarch64'
+            nix_shell: 'cross-autogen'
             nix_cache: 'true'
             extra_args: '--force-cross'
           - system: ubuntu-24.04-arm
-            nix_shell: 'ci-cross-x86_64'
+            nix_shell: 'cross-autogen'
             nix_cache: 'true'
             extra_args: '--force-cross'
     runs-on: ${{ matrix.target.system }}
     name: Check autogenerated files
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/setup-shell
         with:
           nix-shell: ${{ matrix.target.nix_shell }}
@@ -777,7 +783,7 @@ jobs:
     runs-on: ${{ matrix.target.system }}
     name: Check object code in HOL-Light proofs
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: ./.github/actions/setup-shell
         with:
           nix-shell: ${{ matrix.target.nix_shell }}

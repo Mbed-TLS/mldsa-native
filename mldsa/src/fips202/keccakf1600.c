@@ -28,7 +28,6 @@
  * by Ronny Van Keer, and the public domain @[tweetfips] implementation. */
 
 #include <assert.h>
-#include <stdint.h>
 
 #include "keccakf1600.h"
 #if !defined(MLD_CONFIG_MULTILEVEL_NO_SHARED)
@@ -36,6 +35,7 @@
 #define MLD_KECCAK_NROUNDS 24
 #define MLD_KECCAK_ROL(a, offset) ((a << offset) ^ (a >> (64 - offset)))
 
+MLD_INTERNAL_API
 void mld_keccakf1600_extract_bytes(uint64_t *state, unsigned char *data,
                                    unsigned offset, unsigned length)
 {
@@ -43,20 +43,23 @@ void mld_keccakf1600_extract_bytes(uint64_t *state, unsigned char *data,
 #if defined(MLD_SYS_LITTLE_ENDIAN)
   uint8_t *state_ptr = (uint8_t *)state + offset;
   for (i = 0; i < length; i++)
-  __loop__(invariant(i <= length))
+  __loop__(invariant(i <= length)
+           decreases(length - i))
   {
     data[i] = state_ptr[i];
   }
 #else  /* MLD_SYS_LITTLE_ENDIAN */
   /* Portable version */
   for (i = 0; i < length; i++)
-  __loop__(invariant(i <= length))
+  __loop__(invariant(i <= length)
+           decreases(length - i))
   {
     data[i] = (state[(offset + i) >> 3] >> (8 * ((offset + i) & 0x07))) & 0xFF;
   }
 #endif /* !MLD_SYS_LITTLE_ENDIAN */
 }
 
+MLD_INTERNAL_API
 void mld_keccakf1600_xor_bytes(uint64_t *state, const unsigned char *data,
                                unsigned offset, unsigned length)
 {
@@ -64,14 +67,16 @@ void mld_keccakf1600_xor_bytes(uint64_t *state, const unsigned char *data,
 #if defined(MLD_SYS_LITTLE_ENDIAN)
   uint8_t *state_ptr = (uint8_t *)state + offset;
   for (i = 0; i < length; i++)
-  __loop__(invariant(i <= length))
+  __loop__(invariant(i <= length)
+           decreases(length - i))
   {
     state_ptr[i] ^= data[i];
   }
 #else  /* MLD_SYS_LITTLE_ENDIAN */
   /* Portable version */
   for (i = 0; i < length; i++)
-  __loop__(invariant(i <= length))
+  __loop__(invariant(i <= length)
+           decreases(length - i))
   {
     state[(offset + i) >> 3] ^= (uint64_t)data[i]
                                 << (8 * ((offset + i) & 0x07));
@@ -79,6 +84,7 @@ void mld_keccakf1600_xor_bytes(uint64_t *state, const unsigned char *data,
 #endif /* !MLD_SYS_LITTLE_ENDIAN */
 }
 
+MLD_INTERNAL_API
 void mld_keccakf1600x4_extract_bytes(uint64_t *state, unsigned char *data0,
                                      unsigned char *data1, unsigned char *data2,
                                      unsigned char *data3, unsigned offset,
@@ -94,6 +100,7 @@ void mld_keccakf1600x4_extract_bytes(uint64_t *state, unsigned char *data0,
                                 length);
 }
 
+MLD_INTERNAL_API
 void mld_keccakf1600x4_xor_bytes(uint64_t *state, const unsigned char *data0,
                                  const unsigned char *data1,
                                  const unsigned char *data2,
@@ -110,6 +117,7 @@ void mld_keccakf1600x4_xor_bytes(uint64_t *state, const unsigned char *data0,
                             length);
 }
 
+MLD_INTERNAL_API
 void mld_keccakf1600x4_permute(uint64_t *state)
 {
 #if defined(MLD_USE_FIPS202_X4_NATIVE)
@@ -138,7 +146,8 @@ static const uint64_t mld_KeccakF_RoundConstants[MLD_KECCAK_NROUNDS] = {
     (uint64_t)0x8000000080008081ULL, (uint64_t)0x8000000000008080ULL,
     (uint64_t)0x0000000080000001ULL, (uint64_t)0x8000000080008008ULL};
 
-static void mld_keccakf1600_permute_c(uint64_t *state)
+MLD_STATIC_TESTABLE
+void mld_keccakf1600_permute_c(uint64_t *state)
 {
   unsigned round;
 
@@ -183,7 +192,8 @@ static void mld_keccakf1600_permute_c(uint64_t *state)
   Asu = state[24];
 
   for (round = 0; round < MLD_KECCAK_NROUNDS; round += 2)
-  __loop__(invariant(round <= MLD_KECCAK_NROUNDS && round % 2 == 0))
+  __loop__(invariant(round <= MLD_KECCAK_NROUNDS && round % 2 == 0)
+           decreases(MLD_KECCAK_NROUNDS - round))
   {
     /* prepareTheta */
     BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
@@ -404,6 +414,7 @@ static void mld_keccakf1600_permute_c(uint64_t *state)
   state[24] = Asu;
 }
 
+MLD_INTERNAL_API
 void mld_keccakf1600_permute(uint64_t *state)
 {
 #if defined(MLD_USE_FIPS202_X1_NATIVE)

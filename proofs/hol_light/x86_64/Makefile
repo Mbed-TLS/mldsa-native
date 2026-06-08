@@ -50,7 +50,7 @@ endif
 
 SPLIT=tr ';' '\n'
 
-OBJ = mldsa/mldsa_ntt.o
+OBJ = mldsa/mldsa_ntt.o mldsa/mldsa_intt.o
 
 # Build object files from assembly sources
 $(OBJ): %.o : %.S
@@ -96,7 +96,7 @@ proofs/dump_bytecode.native: proofs/dump_bytecode.ml $(OBJ)
 
 # Run them and print the standard output+error at *.correct
 %.correct: %.native
-	$< 2>&1 | tee $@
+	cd .. ; ./x86_64/$< 2>&1 | tee ./x86_64/$@
 	@if (grep -i "error:\|exception:" "$@" >/dev/null); then  \
 		echo "$< had errors!";			          \
 		exit 1;					          \
@@ -110,15 +110,6 @@ run_proofs: build_proofs $(PROOF_LOGS);
 proofs: run_proofs ; $(SRC)/tools/count-proofs.sh .
 
 dump_bytecode: proofs/dump_bytecode.native
-	./$<
+	cd .. ; ./x86_64/$<
 
-.PHONY: proofs build_proofs run_proofs sematest clean dump_bytecode
-
-# Always run sematest regardless of dependency check
-FORCE: ;
-# Always use max. # of cores because in Makefile one cannot get the passed number of -j.
-# A portable way of getting the number of max. cores:
-# https://stackoverflow.com/a/23569003/1488216
-NUM_CORES_FOR_SEMATEST = $(shell getconf _NPROCESSORS_ONLN)
-sematest: FORCE $(OBJ) $(SRC_X86)/proofs/simulator_iclasses.ml $(SRC_X86)/proofs/simulator.native
-	$(SRC)/tools/run-sematest.sh x86 $(NUM_CORES_FOR_SEMATEST)
+.PHONY: proofs build_proofs run_proofs clean dump_bytecode

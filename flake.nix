@@ -7,7 +7,7 @@
 
   inputs = {
     nixpkgs-2405.url = "github:NixOS/nixpkgs/nixos-24.05";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     flake-parts = {
@@ -25,10 +25,9 @@
           pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
           pkgs-2405 = inputs.nixpkgs-2405.legacyPackages.${system};
           util = pkgs.callPackage ./nix/util.nix {
-            # Keep those around in case we want to switch to unstable versions
-            cbmc = pkgs-unstable.cbmc;
-            bitwuzla = pkgs-unstable.bitwuzla;
-            z3 = pkgs-unstable.z3;
+            inherit (pkgs) cbmc bitwuzla z3;
+            # TODO: switch back to stable python3 for slothy once ortools is fixed in 25.11
+            python3-for-slothy = pkgs-unstable.python3;
           };
           zigWrapCC = zig: pkgs.symlinkJoin {
             name = "zig-wrappers";
@@ -53,12 +52,17 @@
             inherit system;
             overlays = [
               (_:_: {
+                # From 24.05 (dropped in 25.11)
                 gcc48 = pkgs-2405.gcc48;
                 gcc49 = pkgs-2405.gcc49;
                 gcc7 = pkgs-2405.gcc7;
-                gcc15 = pkgs-unstable.gcc15;
-                clang_21 = pkgs-unstable.clang_21;
-                zig_0_15 = pkgs-unstable.zig_0_15;
+                gcc11 = pkgs-2405.gcc11;
+                gcc12 = pkgs-2405.gcc12;
+                clang_14 = pkgs-2405.clang_14;
+                clang_15 = pkgs-2405.clang_15;
+                clang_16 = pkgs-2405.clang_16;
+                clang_17 = pkgs-2405.clang_17;
+                zig_0_12 = pkgs-2405.zig_0_12;
               })
             ];
           };
@@ -77,6 +81,7 @@
           packages.toolchain_riscv32 = util.toolchain_riscv32;
           packages.toolchain_ppc64le = util.toolchain_ppc64le;
           packages.toolchain_aarch64_be = util.toolchain_aarch64_be;
+          packages.gcc-arm-embedded = pkgs.gcc-arm-embedded;
 
           devShells.default = util.mkShell {
             packages = builtins.attrValues
@@ -89,108 +94,126 @@
               } ++ pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [ config.packages.valgrind_varlat ];
           };
 
-          # arm-none-eabi-gcc + platform files from pqmx
-          packages.m55-an547 = util.m55-an547;
-          #packages.avr-toolchain = util.avr-toolchain; # TODO The AVR shell is currently unavaliable for mldsa-native
-          devShells.arm-embedded = util.mkShell {
-            packages = builtins.attrValues
-              {
-                inherit (config.packages) m55-an547;
-                inherit (pkgs) gcc-arm-embedded qemu coreutils python3 git;
-              };
-          };
-
-          devShells.avr = util.mkShell (import ./nix/avr { inherit pkgs; });
           packages.hol_server = util.hol_server.hol_server_start;
           devShells.hol_light = (util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters hol_light s2n_bignum hol_server; };
           }).overrideAttrs (old: { shellHook = holLightShellHook; });
           devShells.hol_light-cross = (util.mkShell {
-            packages = builtins.attrValues { inherit (config.packages) linters toolchains hol_light s2n_bignum hol_server; };
+            packages = builtins.attrValues { inherit (config.packages) linters toolchains hol_light s2n_bignum gcc-arm-embedded hol_server; };
           }).overrideAttrs (old: { shellHook = holLightShellHook; });
           devShells.hol_light-cross-aarch64 = (util.mkShell {
-            packages = builtins.attrValues { inherit (config.packages) linters toolchain_aarch64 hol_light s2n_bignum hol_server; };
+            packages = builtins.attrValues { inherit (config.packages) linters toolchain_aarch64 hol_light s2n_bignum gcc-arm-embedded hol_server; };
           }).overrideAttrs (old: { shellHook = holLightShellHook; });
           devShells.hol_light-cross-x86_64 = (util.mkShell {
-            packages = builtins.attrValues { inherit (config.packages) linters toolchain_x86_64 hol_light s2n_bignum hol_server; };
+            packages = builtins.attrValues { inherit (config.packages) linters toolchain_x86_64 hol_light s2n_bignum gcc-arm-embedded hol_server; };
           }).overrideAttrs (old: { shellHook = holLightShellHook; });
           devShells.ci = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchains_native; };
           };
-          devShells.ci-bench = util.mkShell {
+          devShells.bench = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) toolchains_native; };
           };
-          devShells.ci-cbmc = util.mkShell {
+          devShells.cbmc = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) cbmc toolchains_native; } ++ [ pkgs.gh ];
           };
-          devShells.ci-slothy = util.mkShell {
+          devShells.slothy = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) slothy linters toolchains_native; };
           };
-          devShells.ci-cross = util.mkShell {
+          devShells.cross = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchains; };
           };
-          devShells.ci-cross-x86_64 = util.mkShell {
+          devShells.cross-x86_64 = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchain_x86_64; };
           };
-          devShells.ci-cross-aarch64 = util.mkShell {
+          devShells.cross-aarch64 = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchain_aarch64; };
           };
-          devShells.ci-cross-riscv64 = util.mkShell {
+          devShells.cross-riscv64 = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchain_riscv64; };
           };
-          devShells.ci-cross-riscv32 = util.mkShell {
+          devShells.cross-riscv32 = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchain_riscv32; };
           };
-          devShells.ci-cross-ppc64le = util.mkShell {
+          devShells.cross-ppc64le = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchain_ppc64le; };
           };
-          devShells.ci-cross-aarch64_be = util.mkShell {
+          devShells.cross-aarch64_be = util.mkShell {
             packages = builtins.attrValues { inherit (config.packages) linters toolchain_aarch64_be; };
           };
-          devShells.ci-linter = util.mkShellNoCC {
+
+          # autogen shell with cross compiler for the "other" architecture
+          devShells.cross-autogen = util.mkShell {
+            packages = builtins.attrValues { inherit (config.packages) linters; inherit (pkgs) gcc-arm-embedded; }
+              ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [ config.packages.toolchain_aarch64 ]
+              ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isAarch64 [ config.packages.toolchain_x86_64 ];
+          };
+
+          # arm-none-eabi-gcc + platform files from pqmx
+          devShells.cross-arm-embedded = util.mkShell {
+            packages = builtins.attrValues
+              {
+                inherit (util) pqmx;
+                inherit (config.packages) linters;
+                inherit (pkgs) gcc-arm-embedded qemu coreutils python3 git;
+              };
+          };
+          devShells.cross-aarch64-embedded = util.mkShell {
+            packages = builtins.attrValues
+              {
+                inherit (pkgs) qemu coreutils python3 git;
+              } ++ [
+              pkgs-unstable.pkgsCross.aarch64-embedded.stdenv.cc
+            ];
+          };
+
+
+
+          # TODO: AVR shell not yet available for mldsa-native
+          # devShells.cross-avr = util.mkShell (import ./nix/avr { inherit pkgs; });
+
+          devShells.linter = util.mkShellNoCC {
             packages = builtins.attrValues { inherit (config.packages) linters; };
           };
-          devShells.ci_clang14 = util.mkShellWithCC' pkgs.clang_14;
-          devShells.ci_clang15 = util.mkShellWithCC' pkgs.clang_15;
-          devShells.ci_clang16 = util.mkShellWithCC' pkgs.clang_16;
-          devShells.ci_clang17 = util.mkShellWithCC' pkgs.clang_17;
-          devShells.ci_clang18 = util.mkShellWithCC' pkgs.clang_18;
-          devShells.ci_clang19 = util.mkShellWithCC' pkgs.clang_19;
-          devShells.ci_clang20 = util.mkShellWithCC' pkgs.clang_20;
-          devShells.ci_clang21 = util.mkShellWithCC' pkgs.clang_21;
+          devShells.clang14 = util.mkShellWithCC' pkgs.clang_14;
+          devShells.clang15 = util.mkShellWithCC' pkgs.clang_15;
+          devShells.clang16 = util.mkShellWithCC' pkgs.clang_16;
+          devShells.clang17 = util.mkShellWithCC' pkgs.clang_17;
+          devShells.clang18 = util.mkShellWithCC' pkgs.clang_18;
+          devShells.clang19 = util.mkShellWithCC' pkgs.clang_19;
+          devShells.clang20 = util.mkShellWithCC' pkgs.clang_20;
+          devShells.clang21 = util.mkShellWithCC' pkgs.clang_21;
 
-          devShells.ci_zig0_12 = util.mkShellWithCC' (zigWrapCC pkgs.zig_0_12);
-          devShells.ci_zig0_13 = util.mkShellWithCC' (zigWrapCC pkgs.zig_0_13);
-          devShells.ci_zig0_14 = util.mkShellWithCC' (zigWrapCC pkgs.zig);
-          devShells.ci_zig0_15 = util.mkShellWithCC' (zigWrapCC pkgs.zig_0_15);
+          devShells.zig0_12 = util.mkShellWithCC' (zigWrapCC pkgs.zig_0_12);
+          devShells.zig0_13 = util.mkShellWithCC' (zigWrapCC pkgs.zig_0_13);
+          devShells.zig0_14 = util.mkShellWithCC' (zigWrapCC pkgs.zig_0_14);
+          devShells.zig0_15 = util.mkShellWithCC' (zigWrapCC pkgs.zig);
 
-
-          devShells.ci_gcc48 = util.mkShellWithCC' pkgs.gcc48;
-          devShells.ci_gcc49 = util.mkShellWithCC' pkgs.gcc49;
-          devShells.ci_gcc7 = util.mkShellWithCC' pkgs.gcc7;
-          devShells.ci_gcc11 = util.mkShellWithCC' pkgs.gcc11;
-          devShells.ci_gcc12 = util.mkShellWithCC' pkgs.gcc12;
-          devShells.ci_gcc13 = util.mkShellWithCC' pkgs.gcc13;
-          devShells.ci_gcc14 = util.mkShellWithCC' pkgs.gcc14;
-          devShells.ci_gcc15 = util.mkShellWithCC' pkgs.gcc15;
+          devShells.gcc48 = util.mkShellWithCC' pkgs.gcc48;
+          devShells.gcc49 = util.mkShellWithCC' pkgs.gcc49;
+          devShells.gcc7 = util.mkShellWithCC' pkgs.gcc7;
+          devShells.gcc11 = util.mkShellWithCC' pkgs.gcc11;
+          devShells.gcc12 = util.mkShellWithCC' pkgs.gcc12;
+          devShells.gcc13 = util.mkShellWithCC' pkgs.gcc13;
+          devShells.gcc14 = util.mkShellWithCC' pkgs.gcc14;
+          devShells.gcc15 = util.mkShellWithCC' pkgs.gcc15;
 
           # valgrind with a patch for detecting variable-latency instructions
-          devShells.ci_valgrind-varlat_clang14 = util.mkShellWithCC_valgrind' pkgs.clang_14;
-          devShells.ci_valgrind-varlat_clang15 = util.mkShellWithCC_valgrind' pkgs.clang_15;
-          devShells.ci_valgrind-varlat_clang16 = util.mkShellWithCC_valgrind' pkgs.clang_16;
-          devShells.ci_valgrind-varlat_clang17 = util.mkShellWithCC_valgrind' pkgs.clang_17;
-          devShells.ci_valgrind-varlat_clang18 = util.mkShellWithCC_valgrind' pkgs.clang_18;
-          devShells.ci_valgrind-varlat_clang19 = util.mkShellWithCC_valgrind' pkgs.clang_19;
-          devShells.ci_valgrind-varlat_clang20 = util.mkShellWithCC_valgrind' pkgs.clang_20;
-          devShells.ci_valgrind-varlat_clang21 = util.mkShellWithCC_valgrind' pkgs.clang_21;
-          devShells.ci_valgrind-varlat_gcc48 = util.mkShellWithCC_valgrind' pkgs.gcc48;
-          devShells.ci_valgrind-varlat_gcc49 = util.mkShellWithCC_valgrind' pkgs.gcc49;
-          devShells.ci_valgrind-varlat_gcc7 = util.mkShellWithCC_valgrind' pkgs.gcc7;
-          devShells.ci_valgrind-varlat_gcc11 = util.mkShellWithCC_valgrind' pkgs.gcc11;
-          devShells.ci_valgrind-varlat_gcc12 = util.mkShellWithCC_valgrind' pkgs.gcc12;
-          devShells.ci_valgrind-varlat_gcc13 = util.mkShellWithCC_valgrind' pkgs.gcc13;
-          devShells.ci_valgrind-varlat_gcc14 = util.mkShellWithCC_valgrind' pkgs.gcc14;
-          devShells.ci_valgrind-varlat_gcc15 = util.mkShellWithCC_valgrind' pkgs.gcc15;
+          devShells.valgrind-varlat_clang14 = util.mkShellWithCC_valgrind' pkgs.clang_14;
+          devShells.valgrind-varlat_clang15 = util.mkShellWithCC_valgrind' pkgs.clang_15;
+          devShells.valgrind-varlat_clang16 = util.mkShellWithCC_valgrind' pkgs.clang_16;
+          devShells.valgrind-varlat_clang17 = util.mkShellWithCC_valgrind' pkgs.clang_17;
+          devShells.valgrind-varlat_clang18 = util.mkShellWithCC_valgrind' pkgs.clang_18;
+          devShells.valgrind-varlat_clang19 = util.mkShellWithCC_valgrind' pkgs.clang_19;
+          devShells.valgrind-varlat_clang20 = util.mkShellWithCC_valgrind' pkgs.clang_20;
+          devShells.valgrind-varlat_clang21 = util.mkShellWithCC_valgrind' pkgs.clang_21;
+          devShells.valgrind-varlat_gcc48 = util.mkShellWithCC_valgrind' pkgs.gcc48;
+          devShells.valgrind-varlat_gcc49 = util.mkShellWithCC_valgrind' pkgs.gcc49;
+          devShells.valgrind-varlat_gcc7 = util.mkShellWithCC_valgrind' pkgs.gcc7;
+          devShells.valgrind-varlat_gcc11 = util.mkShellWithCC_valgrind' pkgs.gcc11;
+          devShells.valgrind-varlat_gcc12 = util.mkShellWithCC_valgrind' pkgs.gcc12;
+          devShells.valgrind-varlat_gcc13 = util.mkShellWithCC_valgrind' pkgs.gcc13;
+          devShells.valgrind-varlat_gcc14 = util.mkShellWithCC_valgrind' pkgs.gcc14;
+          devShells.valgrind-varlat_gcc15 = util.mkShellWithCC_valgrind' pkgs.gcc15;
         };
       flake = {
         devShell.x86_64-linux =
@@ -199,9 +222,9 @@
             pkgs-unstable = inputs.nixpkgs-unstable.legacyPackages.x86_64-linux;
             util = pkgs.callPackage ./nix/util.nix {
               inherit pkgs;
-              cbmc = pkgs-unstable.cbmc;
-              bitwuzla = pkgs-unstable.bitwuzla;
-              z3 = pkgs-unstable.z3;
+              inherit (pkgs) cbmc bitwuzla z3;
+              # TODO: switch back to stable python3 for slothy once ortools is fixed in 25.11
+              python3-for-slothy = pkgs-unstable.python3;
             };
           in
           util.mkShell {

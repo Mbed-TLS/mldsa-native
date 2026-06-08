@@ -52,7 +52,7 @@
  *
  * Example:
  * ```bash
- * unifdef -UMLD_CONFIG_USE_NATIVE_BACKEND_ARITH mldsa_native.S
+ * unifdef -UMLD_CONFIG_USE_NATIVE_BACKEND_ARITH mldsa_native_asm.S
  * ```
  */
 
@@ -98,6 +98,9 @@
 #include "src/fips202/native/aarch64/src/keccak_f1600_x4_v8a_v84a_scalar_hybrid_asm.S"
 #endif /* MLD_SYS_AARCH64 */
 #if defined(MLD_SYS_X86_64)
+#endif
+#if defined(MLD_SYS_ARMV81M_MVE)
+#include "src/fips202/native/armv81m/src/keccak_f1600_x4_mve.S"
 #endif
 #endif /* MLD_CONFIG_USE_NATIVE_BACKEND_FIPS202 */
 
@@ -217,6 +220,7 @@
 #undef MLD_ADD_PARAM_SET
 #undef MLD_ALLOC
 #undef MLD_APPLY
+#undef MLD_ASM_FN_SIZE
 #undef MLD_ASM_FN_SYMBOL
 #undef MLD_ASM_NAMESPACE
 #undef MLD_BUILD_INTERNAL
@@ -460,6 +464,7 @@
 #undef MLD_SYS_AARCH64
 #undef MLD_SYS_AARCH64_EB
 #undef MLD_SYS_APPLE
+#undef MLD_SYS_ARMV81M_MVE
 #undef MLD_SYS_BIG_ENDIAN
 #undef MLD_SYS_H
 #undef MLD_SYS_LINUX
@@ -467,6 +472,7 @@
 #undef MLD_SYS_PPC64LE
 #undef MLD_SYS_RISCV32
 #undef MLD_SYS_RISCV64
+#undef MLD_SYS_RISCV64_RVV
 #undef MLD_SYS_WINDOWS
 #undef MLD_SYS_X86_64
 #undef MLD_SYS_X86_64_AVX2
@@ -539,8 +545,8 @@
 #undef mld_keccak_f1600_x1_scalar_asm
 #undef mld_keccak_f1600_x1_v84a_asm
 #undef mld_keccak_f1600_x2_v84a_asm
-#undef mld_keccak_f1600_x4_scalar_v8a_hybrid_asm
-#undef mld_keccak_f1600_x4_scalar_v8a_v84a_hybrid_asm
+#undef mld_keccak_f1600_x4_v8a_scalar_hybrid_asm
+#undef mld_keccak_f1600_x4_v8a_v84a_scalar_hybrid_asm
 #undef mld_keccakf1600_round_constants
 /* mldsa/src/fips202/native/aarch64/x1_scalar.h */
 #undef MLD_FIPS202_AARCH64_NEED_X1_SCALAR
@@ -575,6 +581,21 @@
 #undef MLD_FIPS202_X86_64_XKCP
 #undef MLD_USE_FIPS202_X4_NATIVE
 #endif /* MLD_SYS_X86_64 */
+#if defined(MLD_SYS_ARMV81M_MVE)
+/*
+ * Undefine macros from native code (FIPS202, Armv8.1-M)
+ */
+/* mldsa/src/fips202/native/armv81m/mve.h */
+#undef MLD_FIPS202_ARMV81M_NEED_X4
+#undef MLD_FIPS202_NATIVE_ARMV81M
+#undef MLD_FIPS202_NATIVE_ARMV81M_MVE_H
+#undef MLD_USE_FIPS202_X4_NATIVE
+#undef mld_keccak_f1600_x4_native_impl
+/* mldsa/src/fips202/native/armv81m/src/fips202_native_armv81m.h */
+#undef MLD_FIPS202_NATIVE_ARMV81M_SRC_FIPS202_NATIVE_ARMV81M_H
+#undef mld_keccak_f1600_x4_mve_asm
+#undef mld_keccakf1600_round_constants
+#endif /* MLD_SYS_ARMV81M_MVE */
 #endif /* MLD_CONFIG_USE_NATIVE_BACKEND_FIPS202 */
 #if defined(MLD_CONFIG_USE_NATIVE_BACKEND_ARITH)
 /* mldsa/src/native/api.h */
@@ -583,7 +604,7 @@
 #undef MLD_NATIVE_FUNC_FALLBACK
 #undef MLD_NATIVE_FUNC_SUCCESS
 #undef MLD_NTT_BOUND
-#undef REDUCE32_RANGE_MAX
+#undef MLD_REDUCE32_RANGE_MAX
 /* mldsa/src/native/meta.h */
 #undef MLD_NATIVE_META_H
 #if defined(MLD_SYS_AARCH64)
